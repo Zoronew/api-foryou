@@ -1,20 +1,21 @@
+const { PassThrough } = require('stream');
 const fetch = require('node-fetch');
 const SpottyDL = require('spottydl');
 const NodeID3 = require('node-id3');
 const axios = require('axios');
-const { search, downloadTrack, downloadAlbum } = require("@nechlophomeriaa/spotifydl");
 
 async function getMusicBuffer(text) {
   try {
     const isSpotifyUrl = text.match(/^(https:\/\/open\.spotify\.com\/(album|track)\/[a-zA-Z0-9]+)/i);
+    let audioBuffer;
+
     if (isSpotifyUrl) {
-      let dlspoty;
       if (isSpotifyUrl[2] === 'album') {
         const album = await downloadAlbum(isSpotifyUrl[0]);
-        dlspoty = album.trackList[0].audioBuffer; 
+        audioBuffer = album.trackList[0].audioBuffer;
       } else if (isSpotifyUrl[2] === 'track') {
         const track = await downloadTrack(isSpotifyUrl[0]);
-        dlspoty = track.audioBuffer;
+        audioBuffer = track.audioBuffer;
       }
 
       let dataInfo;
@@ -51,10 +52,7 @@ async function getMusicBuffer(text) {
         copyright: 'Copyright Darlyn ©2023',
       };
 
-      // قم بإنشاء Buffer بدلاً من كتابة الملف
-      const audioBuffer = dlspoty;
-
-      // استخدم Buffer لتحويل البيانات
+      // كتابة التاج إلى Buffer
       const taggedBuffer = await NodeID3.write(tags, audioBuffer);
       return taggedBuffer;
 
