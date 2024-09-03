@@ -11,7 +11,7 @@ const router = express.Router();
 // MongoDB connection string
 const dbURI = process.env.DB_URI;
 
-mongoose.connect(dbURI, { useNewUrlParser: true, useUnifiedTopology: true })
+mongoose.connect(dbURI)
     .then(() => console.log('Connected to MongoDB'))
     .catch(err => console.error('Error connecting to MongoDB:', err));
 
@@ -84,7 +84,7 @@ router.post('/forgot-password', async (req, res) => {
 
         const mailOptions = {
             to: user.email,
-            from: 'passwordreset@example.com',
+            from: 'zoro.helloyou@gmail.com',
             subject: 'Password Reset',
             text: `You are receiving this because you (or someone else) have requested the reset of the password for your account.\n\n
                    Please click on the following link, or paste this into your browser to complete the process:\n\n
