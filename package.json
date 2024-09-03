@@ -50,6 +50,7 @@
     "cors": "^2.8.5",
     "crypto": "^1.0.1",
     "discord.js": "^14.15.2",
+    "dotenv": "^16.4.5",
     "elevenlabs": "*",
     "express": "^4.19.2",
     "fb-downloader-scrapper": "^1.0.1",
