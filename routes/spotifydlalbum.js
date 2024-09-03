@@ -14,21 +14,32 @@ router.get('/', async (req, res) => {
       };
       res.setHeader('Content-Type', 'application/json');
       res.send(JSON.stringify(errorResponse, null, 2));
-      return;      
+      return;
     }
+
     let spty = await spotifyDownload(input);
     console.log(spty);
 
-    // Convertir todos los audioBuffers a base64
-    const audioBuffersBase64 = spty.trackList.map(track => track.audioBuffer.toString('base64'));
+    // التأكد من أن spty.trackList موجود وأنه يحتوي على trackList مع audioBuffer
+    if (!spty.trackList || !spty.trackList.length) {
+      throw new Error('لم يتم العثور على قائمة التتبع في الاستجابة.');
+    }
 
-    res.setHeader('Content-Type', 'application/json');  
+    // تحويل كل audioBuffer إلى base64
+    const audioBuffersBase64 = spty.trackList.map(track => {
+      if (!track.audioBuffer) {
+        throw new Error('لا يوجد audioBuffer في أحد العناصر.');
+      }
+      return track.audioBuffer.toString('base64');
+    });
+
+    res.setHeader('Content-Type', 'application/json');
     res.send(JSON.stringify({
       ...spty,
       audioBuffer: audioBuffersBase64.join(', ')
     }, null, 2));
   } catch (error) {
-    console.log(error);
+    console.error(error);
     res.sendFile(path.join(__dirname, '../public/500.html'));
   }
 });
