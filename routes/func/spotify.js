@@ -5,7 +5,7 @@ const NodeID3 = require('node-id3');
 const axios = require('axios');
 const uploadFile = require('./uploadFile')
 const { getBuffer } = require('./functions');
-const { search, downloadTrack, downloadAlbum } = require("sanzy-spotifydl")
+const { search, downloadTrack, downloadAlbum } = require("@nechlophomeriaa/spotifydl")
 
 async function getMusicBuffer(text) {
   try {
