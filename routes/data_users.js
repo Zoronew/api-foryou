@@ -28,8 +28,6 @@ const userSchema = new mongoose.Schema({
 
 const User = mongoose.models.User || mongoose.model('User', userSchema);
 
-// باقي الكود الخاص بك هنا
-
 // Register Endpoint
 router.post('/register', async (req, res) => {
     const { email, username, password } = req.body;
