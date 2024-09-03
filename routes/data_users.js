@@ -26,7 +26,9 @@ const userSchema = new mongoose.Schema({
     resetPasswordExpires: Date,
 });
 
-const User = mongoose.model('User', userSchema);
+const User = mongoose.models.User || mongoose.model('User', userSchema);
+
+// باقي الكود الخاص بك هنا
 
 // Register Endpoint
 router.post('/register', async (req, res) => {
