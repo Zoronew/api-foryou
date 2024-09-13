@@ -30,7 +30,7 @@ const sendMessage = (userId, newUserMessageContent, callback) => {
                 if (Array.isArray(parsedData)) {
                     conversations = parsedData;
                 } else {
-                    console.error('Error: conversations.json does not contain an array');
+                    console.error('Error: bing-ai.json does not contain an array');
                 }
             } catch (e) {
                 console.error('Error parsing JSON file:', e);
@@ -44,34 +44,31 @@ const sendMessage = (userId, newUserMessageContent, callback) => {
             // إنشاء محادثة جديدة للمستخدم
             userConversation = {
                 userName: userId,
-                messages: getDefaultMessages(userId) // الرسائل الافتراضية
+                messages: getDefaultMessages(userId) // الرسائل الافتراضية تُضاف فقط عند إنشاء محادثة جديدة
             };
 
             conversations.push(userConversation);
         }
 
         // إضافة الرسالة الجديدة
-        const currentMessages = userConversation.messages;
+        userConversation.messages.push({
+            role: "user",
+            content: newUserMessageContent
+        });
 
         // معالجة الرسالة باستخدام bing
         bing({
-            messages: currentMessages,
+            messages: userConversation.messages,
             prompt: newUserMessageContent,
             conversation_style: "Balanced",
             markdown: false,
             stream: false
         }, (err, data) => {
-            if (err != null) {
+            if (err) {
                 console.log(err);
                 callback(err, null);
             } else {
-                console.log(data);
-
-                // إضافة الرسائل إلى المحادثة
-                userConversation.messages.push({
-                    role: "user",
-                    content: newUserMessageContent
-                });
+                // إضافة رد المساعد إلى المحادثة
                 userConversation.messages.push({
                     role: "assistant",
                     content: data.message
