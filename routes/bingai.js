@@ -84,7 +84,7 @@ const sendMessage = (userId, newUserMessageContent, callback) => {
                         callback(err, null);
                     } else {
                         console.log('Conversation saved successfully');
-                        callback(null, data.gpt);
+                        callback(null, data.message);
                     }
                 });
             }
