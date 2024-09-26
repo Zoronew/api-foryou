@@ -55,12 +55,12 @@ const sendMessage = (userId, newUserMessageContent, callback) => {
                 const chat = model.startChat({
                     history: history,
                     generationConfig: {
-                        maxOutputTokens: 100
+                        maxOutputTokens: 4096 
                     }
                 });
 
                 // إرسال رسالة المستخدم الجديدة وانتظار الرد
-                const result = await chat.sendMessage(newUserMessageContent);
+                const result = await chat.sendMessage(newUserMessageContent.trim());
                 const response = await result.response;
                 const responseText = response.text();
 
