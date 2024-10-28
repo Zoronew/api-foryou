@@ -35,6 +35,7 @@
     "@vitalets/google-translate-api": "^8.0.0",
     "@whiskeysockets/baileys": "^6.5.0",
     "@xct007/frieren-scraper": "^0.0.2",
+    "abir-downloader": "^1.2.3",
     "api-dylux": "^1.6.2",
     "apicache": "^1.6.3",
     "archiver": "^7.0.1",
