@@ -101,7 +101,7 @@ const sendMessage = (userId, newUserMessageContent, callback) => {
         })
         .then(response => {
             console.log('API Response:', response);
-            const assistantReply = response.data?.response || 'لم أتلقَ ردًا من النظام.';
+            const assistantReply = response.data;
             // إضافة رد المعالج إلى المحادثة
             userConversation.messages.push({
                 id: "",
