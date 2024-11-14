@@ -104,8 +104,7 @@ const sendMessage = async (userId, newUserMessageContent, callback) => {
                     'accept-language': 'ar-EG,ar;q=0.9,en-US;q=0.8,en;q=0.7',
                     'origin': 'https://www.blackbox.ai',
                     'referer': 'https://www.blackbox.ai/chat/XQ4ayhY',
-                    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36',
-                    'cookie': 'sessionId=YOUR_SESSION_ID_HERE'
+                    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36'
                 }
             });
 
