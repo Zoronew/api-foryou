@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { gpt } = require("gpti");
+const axios = require('axios');
 const fs = require('fs');
 
 // دالة للحصول على الرسائل الافتراضية
@@ -13,11 +13,19 @@ const getDefaultMessages = (userId) => [
         role: "assistant",
         content: `السلام عليكم ورحمة الله وبركاته.
 
-بالنسبة للسؤال، فإن رد التحية في الإسلام يستند إلى توجيهات القرآن الكريم. قال الله تعالى في كتابه الكريم: "وَإِذَا حُيِّيتُم بِتَحِيَّةٍ فَحَيُّوا بِأَحْسَنَ مِنْهَا أَوْ رُدُّوهَا" [النساء: 86]. هذا يعني أنه عند تلقي التحية، يجب أن ترد بتحية أفضل أو مساوية.
+عندما يحييك أحدهم بكلمة "أهلاً" أو "مرحباً"، فإن أفضل رد هو قول "السلام عليكم". فقد ورد في الحديث الشريف عن عبد الله بن عمرو رضي الله عنهما، أن النبي صلى الله عليه وسلم قال: "أكثروا من السلام، فإنه من أفضل الأعمال".
 
-لذلك، عندما يقول شخص "أهلاً" أو "مرحباً"، فإن الرد الأفضل هو "السلام عليكم"، لأنها التحية التي تحمل في طياتها السلام والأمان، وتُعتبر من أفضل وأكمل التحيات في الإسلام.
+أهمية التحية بالسلام
 
-نسأل الله أن يجعل تحيتنا دائمًا وسيلة لنشر السلام والود بيننا.`
+تحية الإسلام: السلام هو تحية المسلمين، ويعكس روح الأخوة والمحبة.
+الأجر والثواب: قال الله تعالى في كتابه الكريم: "وَإِذَا حُيِّيتُم بِتَحِيَّةٍ فَحَيُّوا بِأَحْسَنَ مِنْهَا أَوْ رُدُّوهَا" (النساء: 86).
+آداب التحية
+
+الابتسامة: الابتسامة في وجه أخيك صدقة، وهي تعزز من روح المحبة.
+الرد بأحسن: يجب أن يكون الرد على التحية بأحسن منها، مما يعكس الأخلاق الحميدة.
+ختاماً
+
+تذكر دائماً أن التحية بالسلام تعزز من الروابط الاجتماعية وتزيد من الألفة بين الناس.`
     },
     {
         role: "user",
@@ -25,14 +33,14 @@ const getDefaultMessages = (userId) => [
     },
     {
         role: "assistant",
-        content: `السلام عليكم يا ${userId} كيف اساعدك في مجال الاسلام`
+        content: `وعليكم السلام ورحمة الله وبركاته يا ${userId}`
     }
 ];
 
-// دالة لإرسال رسالة ومعالجتها باستخدام GPT
-const sendMessage = (userId, newUserMessageContent, callback) => {
+// دالة لإرسال رسالة ومعالجتها باستخدام axios
+const sendMessage = async (userId, newUserMessageContent, callback) => {
     // قراءة ملف المحادثات
-    fs.readFile('islam-ai.json', 'utf8', (err, fileData) => {
+    fs.readFile('islam-ai.json', 'utf8', async (err, fileData) => {
         let conversations = [];
         if (!err) {
             try {
@@ -40,7 +48,7 @@ const sendMessage = (userId, newUserMessageContent, callback) => {
                 if (Array.isArray(parsedData)) {
                     conversations = parsedData;
                 } else {
-                    console.error('Error: conversations.json does not contain an array');
+                    console.error('Error: islam-ai.json does not contain an array');
                 }
             } catch (e) {
                 console.error('Error parsing JSON file:', e);
@@ -62,42 +70,68 @@ const sendMessage = (userId, newUserMessageContent, callback) => {
 
         // إضافة الرسالة الجديدة
         const currentMessages = userConversation.messages;
+        currentMessages.push({ role: "user", content: newUserMessageContent });
 
-        // معالجة الرسالة باستخدام GPT-4
-        gpt.v1({
-            messages: currentMessages,
-            prompt: newUserMessageContent,
-            model: "GPT-4",
-            markdown: false
-        }, (err, data) => {
-            if (err != null) {
-                console.log(err);
-                callback(err, null);
-            } else {
-                console.log(data);
+        try {
+            // إرسال الرسائل باستخدام axios
+            const response = await axios.post('https://www.blackbox.ai/api/chat', {
+                messages: currentMessages,
+                agentMode: {},
+                clickedAnswer2: false,
+                clickedAnswer3: false,
+                clickedForceWebSearch: false,
+                codeModelMode: true,
+                githubToken: "",
+                id: "",
+                isChromeExt: false,
+                isMicMode: false,
+                maxTokens: 1024,
+                mobileClient: false,
+                playgroundTemperature: 0.5,
+                playgroundTopP: 0.9,
+                previewToken: null,
+                trendingAgentMode: {},
+                userId: null,
+                userSelectedModel: null,
+                userSystemPrompt: null,
+                validated: "00f37b34-a166-4efb-bce5-1312d87f2f94",
+                visitFromDelta: false
+            }, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': '*/*',
+                    'accept-encoding': 'gzip, deflate, br, zstd',
+                    'accept-language': 'ar-EG,ar;q=0.9,en-US;q=0.8,en;q=0.7',
+                    'origin': 'https://www.blackbox.ai',
+                    'referer': 'https://www.blackbox.ai/chat/XQ4ayhY',
+                    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36',
+                    'cookie': 'sessionId=YOUR_SESSION_ID_HERE'
+                }
+            });
 
-                // إضافة الرسائل إلى المحادثة
-                userConversation.messages.push({
-                    role: "user",
-                    content: newUserMessageContent
-                });
-                userConversation.messages.push({
-                    role: "assistant",
-                    content: data.gpt
-                });
+            const assistantResponse = response.data.result;
 
-                // حفظ المحادثة إلى الملف
-                fs.writeFile('islam-ai.json', JSON.stringify(conversations, null, 2), err => {
-                    if (err) {
-                        console.error('Error saving conversation:', err);
-                        callback(err, null);
-                    } else {
-                        console.log('Conversation saved successfully');
-                        callback(null, data.gpt);
-                    }
-                });
-            }
-        });
+            // إضافة رد الذكاء الاصطناعي إلى المحادثة
+            userConversation.messages.push({
+                role: "assistant",
+                content: assistantResponse
+            });
+
+            // حفظ المحادثة إلى الملف
+            fs.writeFile('islam-ai.json', JSON.stringify(conversations, null, 2), err => {
+                if (err) {
+                    console.error('Error saving conversation:', err);
+                    callback(err, null);
+                } else {
+                    console.log('Conversation saved successfully');
+                    callback(null, assistantResponse);
+                }
+            });
+
+        } catch (error) {
+            console.error('Error:', error);
+            callback(error, null);
+        }
     });
 };
 
