@@ -1,26 +1,20 @@
 const express = require('express');
+const router = express.Router();
 const fs = require('fs');
 const path = require('path');
 const axios = require('axios');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
-// إعداد Express Router
-const router = express.Router();
-
-// مفتاح API لـ Google Generative AI
 const API_KEY = 'AIzaSyBLyvu1TBorFuNe9aUQesOmTKCS7fe63SM';
 const genAI = new GoogleGenerativeAI(API_KEY);
 
-// نوع MIME للملف الصوتي
 const AUDIO_MIME_TYPE = 'audio/mp3';
 
-// دالة لتحميل الملف الصوتي
 async function downloadAudioFile(audioFilePath) {
     const response = await axios.get(audioFilePath, { responseType: 'arraybuffer' });
     return Buffer.from(response.data);
 }
 
-// دالة لمعالجة الملف الصوتي
 async function processAudioFile(audioFileBuffer, prompt) {
     const base64AudioFile = audioFileBuffer.toString('base64');
 
@@ -41,7 +35,6 @@ async function processAudioFile(audioFileBuffer, prompt) {
     return result.response.text();
 }
 
-// مسار POST لمعالجة الصوت
 router.post('/process-audio', async (req, res) => {
     const { audioFilePath, prompt } = req.body;
 
