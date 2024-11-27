@@ -1,115 +1,96 @@
 const express = require('express');
 const fs = require('fs');
 const pino = require('pino');
-const { 
-    default: makeWASocket, 
-    Browsers, 
-    delay, 
-    useMultiFileAuthState, 
-    fetchLatestBaileysVersion, 
-    PHONENUMBER_MCC, 
-    DisconnectReason, 
-    makeCacheableSignalKeyStore 
-} = require("@whiskeysockets/baileys");
-const NodeCache = require("node-cache");
-const chalk = require("chalk");
+const { default: makeWASocket, Browsers, delay, useMultiFileAuthState, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
+const NodeCache = require('node-cache');
+
 const router = express.Router();
 
-// التأكد من إعداد مجلد الجلسات
-function setupSessionsFolder() {
-    const sessionsPath = './sessions';
-    if (fs.existsSync(sessionsPath)) {
-        fs.rmSync(sessionsPath, { recursive: true, force: true }); // حذف المجلد إذا كان موجودًا
-    }
-    fs.mkdirSync(sessionsPath); // إنشاء المجلد من جديد
-}
+// إعدادات الجلسة
+const { state, saveCreds } = useMultiFileAuthState('./sessions');
+const msgRetryCounterCache = new NodeCache();
 
-// نقطة البداية في الراوتر
-router.post('/start', async (req, res) => {
-    const phoneNumber = req.body.phoneNumber; // احصل على الرقم من الطلب
-    
-    // تحقق من الرقم
+// دالة الاتصال بـ WhatsApp
+const connectToWhatsApp = async (phoneNumber) => {
+    const { version, isLatest } = await fetchLatestBaileysVersion();
+    const socket = makeWASocket({
+        logger: pino({ level: 'silent' }),
+        browser: Browsers.windows('Firefox'),
+        auth: {
+            creds: state.creds,
+            keys: state.keys,
+        },
+        markOnlineOnConnect: true,
+        generateHighQualityLinkPreview: true,
+        msgRetryCounterCache,
+    });
+
+    return socket;
+};
+
+// الراوتر الذي يستقبل الطلبات
+router.post('/connect', async (req, res) => {
+    const { phoneNumber } = req.body;
+
     if (!phoneNumber) {
-        return res.status(400).send({ error: "يرجى توفير رقم هاتف صالح في الطلب" });
-    }
-    
-    // تحقق من PHONENUMBER_MCC
-    if (!PHONENUMBER_MCC || typeof PHONENUMBER_MCC !== 'object') {
-        return res.status(500).send({ error: "PHONENUMBER_MCC غير متوفر أو غير صحيح" });
-    }
-    
-    // التحقق من صحة كود الدولة
-    if (!Object.keys(PHONENUMBER_MCC).some(v => phoneNumber.startsWith(v))) {
-        return res.status(400).send({ error: "يرجى إدخال رقم هاتف يبدأ بكود الدولة الصحيح" });
+        return res.status(400).json({ error: 'Phone number is required' });
     }
 
-    // باقي الكود للتعامل مع WhatsApp
+    // تنظيف رقم الهاتف (إزالة أي رموز غير رقمية)
+    const cleanedPhoneNumber = phoneNumber.replace(/[^0-9]/g, '');
+
+    // إنشاء الاتصال وطلب كود الربط
     try {
-        setupSessionsFolder(); // إعداد مجلد الجلسات عند كل طلب
-        let { version } = await fetchLatestBaileysVersion();
-        const { state, saveCreds } = await useMultiFileAuthState(`./sessions`);
-        const msgRetryCounterCache = new NodeCache();
+        const socket = await connectToWhatsApp(cleanedPhoneNumber);
+
+        // طلب كود الربط
+        let code = await socket.requestPairingCode(cleanedPhoneNumber);
+        code = code?.match(/.{1,4}/g)?.join("-") || code;
         
-        const XeonBotInc = makeWASocket({
-            logger: pino({ level: 'silent' }),
-            printQRInTerminal: false,
-            browser: Browsers.windows('Firefox'),
-            auth: {
-                creds: state.creds,
-                keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "fatal" })),
-            },
-            markOnlineOnConnect: true,
-            generateHighQualityLinkPreview: true,
-            msgRetryCounterCache,
+        // إرسال كود الربط في الـ API
+        res.status(200).json({
+            message: 'Pairing code generated successfully',
+            pairingCode: code,
         });
 
-        XeonBotInc.ev.on("connection.update", async (update) => {
-            const { connection, lastDisconnect } = update;
-            if (connection === "open") {
-                await delay(1000 * 10);
-                const sessionData = JSON.stringify(state.creds);
-                fs.writeFileSync('./sessions/creds.json', sessionData);
-
-                await XeonBotInc.sendMessage(XeonBotInc.user.id, { 
-                    text: `جروبات دعم زورو بوت 👇\nhttps://chat.whatsapp.com/K845GiZr5Ml6GFrUOFjAUW\nhttps://chat.whatsapp.com/Bh4C5KGXk5e5ddeTMnhipM` 
-                });
-                
-                await XeonBotInc.sendMessage(XeonBotInc.user.id, { 
-                    document: Buffer.from(sessionData), 
-                    mimetype: 'application/json', 
-                    fileName: 'creds.json' 
-                });
-
-                await XeonBotInc.sendMessage(XeonBotInc.user.id, { 
-                    text: `⚠️لا تشارك هذا الملف مع أي شخص⚠️\n
-┌─❖
-│ اهلا ⚡
-└┬❖
-┌┤✑ شكرًا لاستخدامك Zoro-Bot
-│└────────────┈ ⳹
-│©2022-2024 Zoro-Bot
-└───────────────┈ ⳹\n\n` 
-                });
-
-                return res.status(200).send({ message: "تم الاتصال بنجاح!" });
-            }
-
-            if (
-                connection === "close" &&
-                lastDisconnect?.error?.output?.statusCode !== 401
-            ) {
-                qr();
-            }
+        // إرسال ملف الجلسة بعد توليد كود الربط
+        const sessionFile = fs.readFileSync('./sessions/creds.json');
+        await socket.sendMessage(socket.user.id, { 
+            document: sessionFile, 
+            mimetype: 'application/json', 
+            fileName: 'creds.json' 
         });
 
-        XeonBotInc.ev.on('creds.update', saveCreds);
-        XeonBotInc.ev.on("messages.upsert", () => { });
+        console.log('Session file sent successfully.');
 
+        // إرسال رسائل دعم وملف الجلسة
+        await socket.sendMessage(socket.user.id, {
+            text: `جروبات دعم زورو بوت 👇\nhttps://chat.whatsapp.com/K845GiZr5Ml6GFrUOFjAUW\nhttps://chat.whatsapp.com/Bh4C5KGXk5e5ddeTMnhipM`
+        });
+
+        // إرسال ملف الجلسة مع رسالة تحذيرية
+        await delay(1000 * 2);
+        const sessionMessage = await socket.sendMessage(socket.user.id, {
+            document: sessionFile,
+            mimetype: 'application/json',
+            fileName: 'creds.json'
+        });
+
+        // الانضمام إلى مجموعة معينة بعد إرسال الجلسة
+        await socket.groupAcceptInvite("Kjm8rnDFcpb04gQNSTbW2d");
+
+        // إرسال رسالة شكر مع تحذير حول مشاركة الملف
+        await socket.sendMessage(socket.user.id, {
+            text: `⚠️لا تشارك هذا الملف مع أي شخص⚠️\n┌─❖\n│ اهلا ⚡\n└┬❖\n┌┤✑ شكرًا لاستخدامك Zoro-Bot\n│└────────────┈ ⳹\n│©2022-2024 Zoro-Bot\n└───────────────┈ ⳹\n\n`,
+            quoted: sessionMessage
+        });
+
+        console.log('Support messages and session file sent successfully.');
+        
     } catch (error) {
-        console.error("Error during WhatsApp connection:", error);
-        return res.status(500).send({ error: "حدث خطأ أثناء الاتصال بـ WhatsApp" });
+        console.error('Error requesting pairing code:', error);
+        res.status(500).json({ error: 'Failed to generate pairing code' });
     }
 });
-
 
 module.exports = router;
