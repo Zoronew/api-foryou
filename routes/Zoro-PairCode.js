@@ -27,10 +27,23 @@ function setupSessionsFolder() {
 // نقطة البداية في الراوتر
 router.post('/start', async (req, res) => {
     const phoneNumber = req.body.phoneNumber; // احصل على الرقم من الطلب
-    if (!phoneNumber || !Object.keys(PHONENUMBER_MCC).some(v => phoneNumber.startsWith(v))) {
-        return res.status(400).send({ error: "يرجى إدخال رقم هاتف صحيح مع رمز البلد" });
+    
+    // تحقق من الرقم
+    if (!phoneNumber) {
+        return res.status(400).send({ error: "يرجى توفير رقم هاتف صالح في الطلب" });
+    }
+    
+    // تحقق من PHONENUMBER_MCC
+    if (!PHONENUMBER_MCC || typeof PHONENUMBER_MCC !== 'object') {
+        return res.status(500).send({ error: "PHONENUMBER_MCC غير متوفر أو غير صحيح" });
+    }
+    
+    // التحقق من صحة كود الدولة
+    if (!Object.keys(PHONENUMBER_MCC).some(v => phoneNumber.startsWith(v))) {
+        return res.status(400).send({ error: "يرجى إدخال رقم هاتف يبدأ بكود الدولة الصحيح" });
     }
 
+    // باقي الكود للتعامل مع WhatsApp
     try {
         setupSessionsFolder(); // إعداد مجلد الجلسات عند كل طلب
         let { version } = await fetchLatestBaileysVersion();
@@ -97,5 +110,6 @@ router.post('/start', async (req, res) => {
         return res.status(500).send({ error: "حدث خطأ أثناء الاتصال بـ WhatsApp" });
     }
 });
+
 
 module.exports = router;
